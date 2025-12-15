@@ -2,42 +2,88 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/foursixnine/imdblookup/models"
+	"log"
 	"net/http"
+	"sync"
+	"time"
+
+	"github.com/foursixnine/imdblookup/models"
 )
 
 func main() {
-	fmt.Println("Hello world")
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmsgprefix)
+	fmt.Println("Application started")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	done := make(chan struct{})
+	var titles []*models.ImdbapiTitle
+	var err error
+
+	go func() {
+		defer wg.Done()
+		fmt.Println("Finding results:")
+		titles, err = findResults()
+		close(done)
+		fmt.Println("\nDone fetching results.")
+	}()
+	counter := 1
+	go func() {
+		for {
+			select {
+			case <-time.After(1 * time.Millisecond):
+				fmt.Print(".")
+				counter++
+				if counter%100 == 0 {
+					fmt.Print("\n")
+					counter = 0
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if len(titles) == 0 {
+		log.Println("No titles found")
+	}
+
+	for _, title := range titles {
+		fmt.Printf("(%s)\t-> \"%s\"\n", title.ID, title.OriginalTitle)
+	}
+
+}
+
+func findResults() ([]*models.ImdbapiTitle, error) {
+	var titlesResults models.ImdbapiSearchTitlesResponse
+	var titles []*models.ImdbapiTitle
 	// curl -X 'GET' \
 	// 'https://api.imdbapi.dev/search/titles?query=Stranger%20Things' \
 	// -H 'accept: application/json'
 	//models.ImdbapiSearchTitlesResponse
-
 	resp, err := http.Get("https://api.imdbapi.dev/search/titles?query=Stranger%20Things")
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		return titles, fmt.Errorf("Error: Status code %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error: Status code", resp.StatusCode)
-		return
+		return titles, fmt.Errorf("Error: Status code %d", resp.StatusCode)
 	}
 
-	var titles models.ImdbapiSearchTitlesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&titles); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&titlesResults); err != nil {
 		fmt.Println("Error decoding JSON:", err)
-		return
+		return titles, errors.New("Document can't be read")
 	}
-
-	for _,title := range titles.Titles {
-		
-		fmt.Printf("(%s)\t-> \"%s\" \n", title.ID, title.OriginalTitle)
-		// fmt.Printf("found ", title)
-
-	}
-
+	titles = titlesResults.Titles
+	return titles, nil
 }
