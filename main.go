@@ -21,11 +21,12 @@ func main() {
 	done := make(chan struct{})
 	var titles []*models.ImdbapiTitle
 	var err error
+	client := &http.Client{}
 
 	go func() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = findResults()
+		titles, err = findResults(client)
 		close(done)
 		fmt.Println("\nDone fetching results.")
 	}()
@@ -62,14 +63,26 @@ func main() {
 
 }
 
-func findResults() ([]*models.ImdbapiTitle, error) {
+func findResults(client *http.Client) ([]*models.ImdbapiTitle, error) {
 	var titlesResults models.ImdbapiSearchTitlesResponse
 	var titles []*models.ImdbapiTitle
 	// curl -X 'GET' \
 	// 'https://api.imdbapi.dev/search/titles?query=Stranger%20Things' \
 	// -H 'accept: application/json'
 	//models.ImdbapiSearchTitlesResponse
-	resp, err := http.Get("https://api.imdbapi.dev/search/titles?query=Stranger%20Things")
+
+	// req := http.Request{Method: "GET"}
+
+	// resp, err := http.Get("https://api.imdbapi.dev/search/titles?query=Stranger%20Things")
+	req, err := http.NewRequest("GET", "https://api.imdbapi.dev/search/titles?query=Stranger%20Things", nil)
+	req.Header.Set("User-Agent", "imdblookup/0.1")
+
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := client.Do(req)
+
 	if err != nil {
 		return titles, fmt.Errorf("Error: Status code %d", resp.StatusCode)
 	}
