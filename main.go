@@ -1,14 +1,14 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
+	"github.com/foursixnine/imdblookup/imdb"
+	"github.com/foursixnine/imdblookup/internal/client"
 	"github.com/foursixnine/imdblookup/models"
 )
 
@@ -21,12 +21,23 @@ func main() {
 	done := make(chan struct{})
 	var titles []*models.ImdbapiTitle
 	var err error
-	client := &http.Client{}
 
+	url, err := url.Parse("https://api.imdbapi.dev")
+	if err != nil {
+		panic(err)
+	}
+
+	options := client.ImdbClientOptions{
+		ApiURL:    url,
+		Verbose:   true,
+		UserAgent: "imdblookup/0.1",
+	}
+
+	imdbClient := client.New(options)
 	go func() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = findResults(client)
+		titles, err = imdb.FindShowsByTitle(imdbClient)
 		close(done)
 		fmt.Println("\nDone fetching results.")
 	}()
@@ -61,42 +72,4 @@ func main() {
 		fmt.Printf("(%s)\t-> \"%s\"\n", title.ID, title.OriginalTitle)
 	}
 
-}
-
-func findResults(client *http.Client) ([]*models.ImdbapiTitle, error) {
-	var titlesResults models.ImdbapiSearchTitlesResponse
-	var titles []*models.ImdbapiTitle
-	// curl -X 'GET' \
-	// 'https://api.imdbapi.dev/search/titles?query=Stranger%20Things' \
-	// -H 'accept: application/json'
-	//models.ImdbapiSearchTitlesResponse
-
-	// req := http.Request{Method: "GET"}
-
-	// resp, err := http.Get("https://api.imdbapi.dev/search/titles?query=Stranger%20Things")
-	req, err := http.NewRequest("GET", "https://api.imdbapi.dev/search/titles?query=Stranger%20Things", nil)
-	req.Header.Set("User-Agent", "imdblookup/0.1")
-
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return titles, fmt.Errorf("Error: Status code %d", resp.StatusCode)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return titles, fmt.Errorf("Error: Status code %d", resp.StatusCode)
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&titlesResults); err != nil {
-		fmt.Println("Error decoding JSON:", err)
-		return titles, errors.New("Document can't be read")
-	}
-	titles = titlesResults.Titles
-	return titles, nil
 }
