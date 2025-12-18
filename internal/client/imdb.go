@@ -1,4 +1,4 @@
-package imdb
+package client
 
 import (
 	"encoding/json"
@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/foursixnine/imdblookup/internal/client"
 	"github.com/foursixnine/imdblookup/models"
 )
 
-func FindShowsByTitle(imdbClient *client.ImdbClient) ([]*models.ImdbapiTitle, error) {
+func (imdbClient *ImdbClient) FindShowsByTitle() ([]*models.ImdbapiTitle, error) {
 	var titlesResults models.ImdbapiSearchTitlesResponse
 
 	path := "search/titles"
-	parameters := []client.QueryParameters{
+	parameters := []QueryParameters{
 		{Key: "query", Value: "Stranger Things"},
 		{Key: "limit", Value: "5"},
 	}
@@ -27,7 +26,7 @@ func FindShowsByTitle(imdbClient *client.ImdbClient) ([]*models.ImdbapiTitle, er
 
 	if err := json.Unmarshal(resp, &titlesResults); err != nil {
 		fmt.Println("Error decoding JSON:", err)
-		return nil, fmt.Errorf("Json answer cannot be read: %w", err)
+		return nil, fmt.Errorf("error: Json answer cannot be read: %w", err)
 	}
 
 	titles := titlesResults.Titles

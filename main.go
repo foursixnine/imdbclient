@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/foursixnine/imdblookup/imdb"
 	"github.com/foursixnine/imdblookup/internal/client"
 	"github.com/foursixnine/imdblookup/models"
 )
@@ -37,7 +36,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = imdb.FindShowsByTitle(imdbClient)
+		titles, err = imdbClient.FindShowsByTitle()
 		close(done)
 		fmt.Println("\nDone fetching results.")
 	}()

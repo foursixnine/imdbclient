@@ -58,7 +58,7 @@ func (t *imdbClientTransport) RoundTrip(req *http.Request) (*http.Response, erro
 func (client *ImdbClient) Get(path string, params *[]QueryParameters) ([]byte, error) {
 
 	url := client.makeUrl(path, *params)
-	log.Println("querying: " + url)
+	log.Println("ImdbClient querying: " + url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
