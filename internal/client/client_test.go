@@ -89,7 +89,17 @@ func TestIMDBClientMakeURL(t *testing.T) {
 	imdbClient := New(options)
 	empty_url := imdbClient.makeUrl("", []QueryParameters{})
 	if empty_url != url.String() {
-		t.Logf("TestIMDBClientMakeURL() = got (%v), want (%v).", empty_url, url.String())
+		t.Errorf("TestIMDBClientMakeURL() = got (%v), want (%v).", empty_url, url.String())
+	}
+
+	params := []QueryParameters{
+		{Key: "", Value: ""},
+		{Key: "key", Value: "value"},
+	}
+	non_empty_query := imdbClient.makeUrl("", params)
+	expected := url.String() + "?key=value"
+	if non_empty_query != expected {
+		t.Errorf("TestIMDBClientMakeURL() = got (%v), want (%v).", non_empty_query, expected)
 	}
 }
 
