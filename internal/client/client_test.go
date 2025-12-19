@@ -78,7 +78,7 @@ func TestIMDBClientGet_empty_query(t *testing.T) {
 func TestIMDBClientMakeURL(t *testing.T) {
 	url, err := url.Parse(server.URL)
 	if err != nil {
-		log.Println("Failed to parse url", err)
+		t.Errorf("Failed to parse url (%v)", err)
 	}
 	options := ImdbClientOptions{
 		ApiURL:    url,
