@@ -76,6 +76,59 @@ func TestIMDBClientGet_empty_query(t *testing.T) {
 }
 
 func TestIMDBClientMakeURL(t *testing.T) {
+	testCases := map[string]struct {
+		params   []QueryParameters
+		path     string
+		expected string
+	}{
+		"with empty path, with query": {
+			path:     "",
+			expected: server.URL + "?key=value",
+			params: []QueryParameters{
+				{Key: "", Value: ""},
+				{Key: "key", Value: "value"},
+			},
+		},
+		"with empty path, no query": {
+			path:     "",
+			expected: server.URL,
+			params: []QueryParameters{
+				{Key: "", Value: ""},
+			},
+		},
+		"with path, with query": {
+			path:     "/foo",
+			expected: server.URL + "/foo?bar=baz&key=value",
+			params: []QueryParameters{
+				{Key: "bar", Value: "baz"},
+				{Key: "key", Value: "value"},
+			},
+		},
+		"with emoji, with query": {
+			path:     "/🥺",
+			expected: server.URL + "/%F0%9F%A5%BA?bar=baz&key=value",
+			params: []QueryParameters{
+				{Key: "bar", Value: "baz"},
+				{Key: "key", Value: "value"},
+			},
+		},
+		"with emoji, with emoji in query": {
+			path:     "/🥺",
+			expected: server.URL + "/%F0%9F%A5%BA?bar=baz&key=%F0%9F%A5%BA",
+			params: []QueryParameters{
+				{Key: "bar", Value: "baz"},
+				{Key: "key", Value: "🥺"},
+			},
+		},
+		"with path, with real value in query": {
+			path:     "/foo",
+			expected: server.URL + "/foo?query=Stranger+Things",
+			params: []QueryParameters{
+				{Key: "query", Value: "Stranger Things"},
+			},
+		},
+	}
+
 	url, err := url.Parse(server.URL)
 	if err != nil {
 		t.Errorf("Failed to parse url (%v)", err)
@@ -87,19 +140,14 @@ func TestIMDBClientMakeURL(t *testing.T) {
 	}
 
 	imdbClient := New(options)
-	empty_url := imdbClient.makeUrl("", []QueryParameters{})
-	if empty_url != url.String() {
-		t.Errorf("TestIMDBClientMakeURL() = got (%v), want (%v).", empty_url, url.String())
-	}
-
-	params := []QueryParameters{
-		{Key: "", Value: ""},
-		{Key: "key", Value: "value"},
-	}
-	non_empty_query := imdbClient.makeUrl("", params)
-	expected := url.String() + "?key=value"
-	if non_empty_query != expected {
-		t.Errorf("TestIMDBClientMakeURL() = got (%v), want (%v).", non_empty_query, expected)
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+			result := imdbClient.makeUrl(testCase.path, testCase.params)
+			if result != testCase.expected {
+				t.Errorf("TestIMDBClientMakeURL(%s) = got (%v), want (%v).", testName, result, testCase.expected)
+			}
+		})
 	}
 }
 
