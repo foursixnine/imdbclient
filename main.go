@@ -37,6 +37,9 @@ func main() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
 		titles, err = imdbClient.FindShowsByTitle()
+		if err != nil {
+			panic(err)
+		}
 		close(done)
 		fmt.Println("\nDone fetching results.")
 	}()

@@ -53,11 +53,46 @@ func TestClient(t *testing.T) {
 
 }
 
-func TestIMDBClientGet_empty_query(t *testing.T) {
+func TestIMDBClientGet(t *testing.T) {
+	testCases := map[string]struct {
+		params   []QueryParameters
+		path     string
+		expected string
+		error    *errors.HTTPError
+	}{
+		"with empty path, with query": {
+			path:     "",
+			expected: "Hello, world",
+			params: []QueryParameters{
+				{Key: "", Value: ""},
+				{Key: "key", Value: "value"},
+			},
+		},
+		"with real path, with query, 404": {
+			path:     "/foo",
+			expected: "Hello, world",
+			params: []QueryParameters{
+				{Key: "", Value: ""},
+				{Key: "key", Value: "value"},
+			},
+			error: errors.NotFound(server.URL + "foo?key=value"),
+		},
+		"with real path, with query, 500": {
+			path:     "/500",
+			expected: "Internal Server Error",
+			params: []QueryParameters{
+				{Key: "", Value: ""},
+				{Key: "key", Value: "value"},
+			},
+			error: errors.UnexpectedError(http.StatusInternalServerError, server.URL+"foo?key=value"),
+		},
+	}
+
 	url, err := url.Parse(server.URL)
 	if err != nil {
 		log.Println("Failed to parse url", err)
 	}
+
 	options := ImdbClientOptions{
 		ApiURL:    url,
 		Verbose:   true,
@@ -65,14 +100,28 @@ func TestIMDBClientGet_empty_query(t *testing.T) {
 	}
 
 	imdbClient := New(options)
-	resp, err := imdbClient.Get("", &[]QueryParameters{})
-	if err != nil {
-		t.Fatalf("error in executing get request: %v", err)
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+			resp, err := imdbClient.Get(testCase.path, &testCase.params)
+
+			if err != nil && testCase.error == nil {
+				t.Fatalf("TestIMDBClientGet(%s) in executing get request: err: (%v) resp:(%v)", testName, err, string(resp))
+			} else if err != nil && testCase.error != nil {
+
+				t.Log("Testing errors")
+				t.Logf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, err, testCase.error)
+
+				if e.Is(err, testCase.error) && testCase.error != err {
+					t.Errorf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, err, testCase.error)
+				}
+
+			} else if string(resp) != testCase.expected {
+				t.Errorf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, string(resp), testCase.expected)
+			}
+		})
 	}
-	expected := "Hello, world"
-	if string(resp) != expected {
-		t.Logf("TestApiServer_empty_query() = got (%v), want (%v).", string(resp), expected)
-	}
+
 }
 
 func TestIMDBClientMakeURL(t *testing.T) {
@@ -133,6 +182,7 @@ func TestIMDBClientMakeURL(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to parse url (%v)", err)
 	}
+
 	options := ImdbClientOptions{
 		ApiURL:    url,
 		Verbose:   true,
@@ -157,13 +207,17 @@ func TestMain(m *testing.M) {
 		for key, value := range r.Header {
 			log.Printf("Request header: %s => %v\n", key, value)
 		}
+		log.Printf("Request path: %s", r.URL.Path)
 		switch strings.TrimSpace(r.URL.Path) {
 		case "/":
-			// fmt.Println(r.Header)
 			fmt.Fprint(w, "Hello, world")
 		case "":
-			// fmt.Println(r.Header)
 			fmt.Fprint(w, "Hello, world")
+		case "/foo":
+			http.NotFoundHandler().ServeHTTP(w, r)
+		case "/500":
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "Internal server error")
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}
