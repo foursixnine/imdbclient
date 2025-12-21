@@ -1,6 +1,8 @@
 package client
 
 import (
+	"encoding/json"
+	e "errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +11,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/foursixnine/imdblookup/internal/errors"
+	"github.com/foursixnine/imdblookup/models"
 )
 
 var server *httptest.Server
@@ -201,6 +206,47 @@ func TestIMDBClientMakeURL(t *testing.T) {
 	}
 }
 
+func TestIMDBClientFindShowsByTitle(t *testing.T) {
+	testCases := map[string]struct {
+		params   string
+		expected []*models.ImdbapiTitle
+		error    *errors.HTTPError
+	}{
+		"with empty query": {
+			expected: []*models.ImdbapiTitle{},
+			params:   "",
+		}, "With non empty query": {
+			expected: []*models.ImdbapiTitle{
+				{ID: "foobar", OriginalTitle: "Stranger Things"},
+			},
+			params: "Stranger Things",
+		},
+	}
+	url, err := url.Parse(server.URL)
+	if err != nil {
+		log.Println("Failed to parse url", err)
+	}
+
+	options := ImdbClientOptions{
+		ApiURL:    url,
+		Verbose:   true,
+		UserAgent: "imdblookup/0.1",
+	}
+
+	imdbClient := New(options)
+	for testName, testCase := range testCases {
+		titles, err := imdbClient.FindShowsByTitle(testCase.params)
+		if err != nil {
+			t.Errorf("TestIMDBClientFindShowsByTitle(%v) = got error (%v)", testName, err)
+		}
+
+		if len(titles) != len(testCase.expected) {
+			t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = Got (%v) more results than expected (%v)", testName, len(titles), len(testCase.expected))
+		}
+	}
+
+}
+
 func TestMain(m *testing.M) {
 
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -218,6 +264,28 @@ func TestMain(m *testing.M) {
 		case "/500":
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "Internal server error")
+		case "/search/titles":
+			titles := models.ImdbapiSearchTitlesResponse{}
+			params := r.URL.Query()
+			query := params.Get("query")
+			if query == "Stranger Things" {
+				titleValues := []*models.ImdbapiTitle{
+					{ID: "foobar", OriginalTitle: "Stranger Things"},
+				}
+				titles.Titles = titleValues //append(titles.Titles, &title)
+			}
+			w.Header().Add("Content-Type", "application/json")
+			w.Header().Add("Accept", "application/json")
+			w.Header().Add("Accept-Charset", "UTF-8")
+			data, err := json.Marshal(titles)
+
+			if err != nil {
+				fmt.Fprint(w, err)
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+
+			w.Write(data)
 		default:
 			http.NotFoundHandler().ServeHTTP(w, r)
 		}

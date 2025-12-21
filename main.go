@@ -36,7 +36,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = imdbClient.FindShowsByTitle()
+		titles, err = imdbClient.FindShowsByTitle("Stranger Things")
 		if err != nil {
 			panic(err)
 		}

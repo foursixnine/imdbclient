@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/foursixnine/imdblookup/internal/errors"
 )
 
 type QueryParameters struct {
@@ -77,7 +79,11 @@ func (client *ImdbClient) Get(path string, params *[]QueryParameters) ([]byte, e
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return response, fmt.Errorf("error: Status code %d", resp.StatusCode)
+		if resp.StatusCode == http.StatusNotFound {
+			return response, errors.NotFound(url)
+		} else {
+			return response, errors.UnexpectedError(resp.StatusCode, string(response))
+		}
 	}
 
 	return response, nil
