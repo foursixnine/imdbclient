@@ -1,10 +1,9 @@
 package client
 
 import (
-	"log"
-	// "errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 

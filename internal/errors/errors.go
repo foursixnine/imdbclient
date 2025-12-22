@@ -36,7 +36,7 @@ func UnexpectedError(statusCode int, message string) *HTTPError {
 
 func (e HTTPError) Is(target error) bool {
 	if t, ok := target.(*HTTPError); ok {
-		return e.Code == t.Code && e.Message == t.Message // Or compare more fields
+		return e.Code == t.Code && e.Message == t.Message
 	}
 	return false
 }

@@ -80,16 +80,16 @@ func TestIMDBClientGet(t *testing.T) {
 				{Key: "", Value: ""},
 				{Key: "key", Value: "value"},
 			},
-			error: errors.NotFound(server.URL + "foo?key=value"),
+			error: errors.NotFound(server.URL + "/foo?key=value"),
 		},
 		"with real path, with query, 500": {
 			path:     "/500",
-			expected: "Internal Server Error",
+			expected: "Internal server error",
 			params: []QueryParameters{
 				{Key: "", Value: ""},
 				{Key: "key", Value: "value"},
 			},
-			error: errors.UnexpectedError(http.StatusInternalServerError, server.URL+"foo?key=value"),
+			error: errors.UnexpectedError(http.StatusInternalServerError, "Internal server error"),
 		},
 	}
 
@@ -113,14 +113,9 @@ func TestIMDBClientGet(t *testing.T) {
 			if err != nil && testCase.error == nil {
 				t.Fatalf("TestIMDBClientGet(%s) in executing get request: err: (%v) resp:(%v)", testName, err, string(resp))
 			} else if err != nil && testCase.error != nil {
-
-				t.Log("Testing errors")
-				t.Logf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, err, testCase.error)
-
-				if e.Is(err, testCase.error) && testCase.error != err {
-					t.Errorf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, err, testCase.error)
+				if !e.Is(err, testCase.error) {
+					t.Errorf("TestIMDBClientGet(%s) = unexpected error, \n\tgot:\t=>(%v),\n\twant\t=>(%v).", testName, err, testCase.error)
 				}
-
 			} else if string(resp) != testCase.expected {
 				t.Errorf("TestIMDBClientGet(%s) = got (%v), want (%v).", testName, string(resp), testCase.expected)
 			}
@@ -242,6 +237,12 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 
 		if len(titles) != len(testCase.expected) {
 			t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = Got (%v) more results than expected (%v)", testName, len(titles), len(testCase.expected))
+		}
+
+		if len(testCase.expected) > 0 {
+			if titles[0].ID != testCase.expected[0].ID {
+				t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = Got (%#v) wanted (%#v)", testName, titles[0], testCase.expected[0])
+			}
 		}
 	}
 
