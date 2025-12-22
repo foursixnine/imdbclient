@@ -43,21 +43,8 @@ func main() {
 		close(done)
 		fmt.Println("\nDone fetching results.")
 	}()
-	counter := 1
 	go func() {
-		for {
-			select {
-			case <-time.After(1 * time.Millisecond):
-				fmt.Print(".")
-				counter++
-				if counter%100 == 0 {
-					fmt.Print("\n")
-					counter = 0
-				}
-			case <-done:
-				return
-			}
-		}
+		progressMarker(done)
 	}()
 
 	wg.Wait()
@@ -74,4 +61,21 @@ func main() {
 		fmt.Printf("(%s)\t-> \"%s\"\n", title.ID, title.OriginalTitle)
 	}
 
+}
+
+func progressMarker(done chan struct{}) {
+	counter := 0
+	for {
+		select {
+		case <-time.After(1 * time.Millisecond):
+			fmt.Print(".")
+			counter++
+			if counter%100 == 0 {
+				fmt.Print("\n")
+				counter = 0
+			}
+		case <-done:
+			return
+		}
+	}
 }
