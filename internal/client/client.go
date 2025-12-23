@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -63,18 +62,18 @@ func (client *ImdbClient) Get(path string, params *[]QueryParameters) ([]byte, e
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error: creating http request %w", err)
+		return nil, errors.IMDBClientGenericError("error: creating http request %w", err)
 	}
 
 	resp, err := client.HttpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error: executing http request %w", err)
+		return nil, errors.IMDBClientGenericError("error: executing http request %w", err)
 	}
 	defer resp.Body.Close()
 
 	response, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error: reading body of request %w", err)
+		return nil, errors.IMDBClientGenericError("error: reading body of request %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {

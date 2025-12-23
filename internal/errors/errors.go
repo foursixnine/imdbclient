@@ -1,7 +1,6 @@
 package errors
 
 import (
-	// e "errors"
 	"fmt"
 	"net/http"
 )
@@ -39,4 +38,24 @@ func (e HTTPError) Is(target error) bool {
 		return e.Code == t.Code && e.Message == t.Message
 	}
 	return false
+}
+
+type IMDBClientError struct {
+	Err     error
+	Message string
+}
+
+func (e IMDBClientError) Error() string {
+	return e.Message
+}
+
+func (e IMDBClientError) Unwrap() error {
+	return e.Err
+}
+
+func IMDBClientGenericError(message string, err error) *IMDBClientError {
+	return &IMDBClientError{
+		Err:     err,
+		Message: fmt.Sprintf("IMDB Client Error: (%s)", message),
+	}
 }
