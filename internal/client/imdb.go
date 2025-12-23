@@ -2,12 +2,10 @@ package client
 
 import (
 	"encoding/json"
-	"os"
 
 	// "errors"
 	"fmt"
-	"log"
-
+	"github.com/foursixnine/imdblookup/internal/errors"
 	"github.com/foursixnine/imdblookup/models"
 )
 
@@ -22,13 +20,13 @@ func (imdbClient *ImdbClient) FindShowsByTitle(searchTitle string) ([]*models.Im
 
 	resp, err := imdbClient.Get(path, &parameters)
 	if err != nil {
-		log.Printf("An error has occured querying search results (%v)", err)
-		os.Exit(2)
+		return nil, errors.NewIMDBClientApplicationError("An error has occured querying search results", err)
+		// os.Exit(2)
 	}
 
 	if err := json.Unmarshal(resp, &titlesResults); err != nil {
 		fmt.Println("Error decoding JSON:", err)
-		return nil, fmt.Errorf("error: Json answer cannot be read: %w", err)
+		return nil, errors.NewIMDBClientApplicationError("error: Json answer cannot be read", err)
 	}
 
 	titles := titlesResults.Titles

@@ -53,9 +53,29 @@ func (e IMDBClientError) Unwrap() error {
 	return e.Err
 }
 
-func IMDBClientGenericError(message string, err error) *IMDBClientError {
+func NewIMDBClientGenericError(message string, err error) *IMDBClientError {
 	return &IMDBClientError{
 		Err:     err,
 		Message: fmt.Sprintf("IMDB Client Error: (%s)", message),
+	}
+}
+
+type IMDBClientApplicationError struct {
+	ClientError error
+	AppMessage  string
+}
+
+func (e IMDBClientApplicationError) Error() string {
+	return fmt.Sprintf("IMDB Client Application Error: %s - %v", e.AppMessage, e.ClientError)
+}
+
+func (e IMDBClientApplicationError) Unwrap() error {
+	return e.ClientError
+}
+
+func NewIMDBClientApplicationError(appMessage string, clientError error) *IMDBClientApplicationError {
+	return &IMDBClientApplicationError{
+		ClientError: clientError,
+		AppMessage:  appMessage,
 	}
 }
