@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmsgprefix)
-	fmt.Println("Application started")
+	log.Println("Application started")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -38,7 +39,8 @@ func main() {
 		fmt.Println("Finding results:")
 		titles, err = imdbClient.FindShowsByTitle("Stranger Things")
 		if err != nil {
-			panic(err)
+			log.Println("An error has occured: (%#v", err)
+			os.Exit(2)
 		}
 		close(done)
 		fmt.Println("\nDone fetching results.")
