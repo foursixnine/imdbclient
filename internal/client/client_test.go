@@ -215,6 +215,9 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 				{ID: "foobar", OriginalTitle: "Stranger Things"},
 			},
 			params: "Stranger Things",
+		}, "With Broken Json": {
+			expected: []*models.ImdbapiTitle{},
+			params:   "Broken Json",
 		},
 	}
 	url, err := url.Parse(server.URL)
@@ -232,7 +235,7 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 	for testName, testCase := range testCases {
 		titles, err := imdbClient.FindShowsByTitle(testCase.params)
 		if err != nil {
-			t.Errorf("TestIMDBClientFindShowsByTitle(%v) = got error (%v)", testName, err)
+			t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = got error (%v)", testName, err)
 		}
 
 		if len(titles) != len(testCase.expected) {
@@ -266,19 +269,13 @@ func TestMain(m *testing.M) {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "Internal server error")
 		case "/search/titles":
-			titles := models.ImdbapiSearchTitlesResponse{}
 			params := r.URL.Query()
 			query := params.Get("query")
-			if query == "Stranger Things" {
-				titleValues := []*models.ImdbapiTitle{
-					{ID: "foobar", OriginalTitle: "Stranger Things"},
-				}
-				titles.Titles = titleValues //append(titles.Titles, &title)
-			}
+			data, err := getDataForQuery(query)
+
 			w.Header().Add("Content-Type", "application/json")
 			w.Header().Add("Accept", "application/json")
 			w.Header().Add("Accept-Charset", "UTF-8")
-			data, err := json.Marshal(titles)
 
 			if err != nil {
 				fmt.Fprint(w, err)
@@ -298,4 +295,23 @@ func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 
+}
+
+func getDataForQuery(query string) (data []byte, err error) {
+	switch query {
+	case "Stranger Things":
+		titles := models.ImdbapiSearchTitlesResponse{}
+		titleValues := []*models.ImdbapiTitle{
+			{ID: "foobar", OriginalTitle: "Stranger Things"},
+		}
+		titles.Titles = titleValues //append(titles.Titles, &title)
+		data, err = json.Marshal(titles)
+	case "Broken Json":
+		data = []byte("{")
+		err = nil
+	default:
+		data = []byte("{}")
+		err = nil
+	}
+	return
 }
