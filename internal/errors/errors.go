@@ -66,7 +66,7 @@ type IMDBClientApplicationError struct {
 }
 
 func (e IMDBClientApplicationError) Error() string {
-	return fmt.Sprintf("IMDB Client Application Error: %s - %v", e.AppMessage, e.ClientError)
+	return fmt.Sprintf("IMDB Client Application Error: %s", e.AppMessage)
 }
 
 func (e IMDBClientApplicationError) Unwrap() error {

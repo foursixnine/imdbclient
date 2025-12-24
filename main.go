@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/foursixnine/imdblookup/internal/client"
+	ce "github.com/foursixnine/imdblookup/internal/errors"
 	"github.com/foursixnine/imdblookup/models"
 )
 
@@ -20,11 +22,11 @@ func main() {
 	wg.Add(1)
 	done := make(chan struct{})
 	var titles []*models.ImdbapiTitle
-	var err error
+	var err *ce.IMDBClientApplicationError
 
-	url, err := url.Parse("https://api.imdbapi.dev")
-	if err != nil {
-		panic(err)
+	url, parseerr := url.Parse("https://api.imdbapi.dev")
+	if parseerr != nil {
+		panic(parseerr)
 	}
 
 	options := client.ImdbClientOptions{
@@ -37,9 +39,14 @@ func main() {
 	go func() {
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = imdbClient.FindShowsByTitle("Stranger Things")
+		titles, err = imdbClient.FindShowsByTitle("")
 		if err != nil {
-			log.Println("An error has occured: (%#v", err)
+			var appErr *ce.IMDBClientApplicationError
+			if errors.As(err, &appErr) && err.AppMessage == "Search title cannot be empty" {
+				log.Printf("Title cannot be empty %v\n", err)
+				os.Exit(404)
+			}
+			log.Printf("An error has occurred: (%v)\n", err)
 			os.Exit(2)
 		}
 		close(done)

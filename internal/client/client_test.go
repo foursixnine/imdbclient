@@ -205,11 +205,15 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 	testCases := map[string]struct {
 		params   string
 		expected []*models.ImdbapiTitle
-		error    *errors.HTTPError
+		error    *errors.IMDBClientApplicationError
 	}{
 		"with empty query": {
 			expected: []*models.ImdbapiTitle{},
 			params:   "",
+			error: &errors.IMDBClientApplicationError{
+				AppMessage:  "Search title cannot be empty",
+				ClientError: nil,
+			},
 		}, "With non empty query": {
 			expected: []*models.ImdbapiTitle{
 				{ID: "foobar", OriginalTitle: "Stranger Things"},
@@ -235,7 +239,20 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 	for testName, testCase := range testCases {
 		titles, err := imdbClient.FindShowsByTitle(testCase.params)
 		if err != nil {
-			t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = got error (%v)", testName, err)
+			if testCase.error != nil {
+				if e.As(err, &testCase.error) {
+					switch testCase.error.AppMessage {
+					case "JSON answer cannot be read":
+						t.Logf("TestIMDBClientFindShowsByTitle(%v), broken json error", testName)
+					case "Search title cannot be empty":
+						t.Logf("TestIMDBClientFindShowsByTitle(%v), Search title empty error", testName)
+					default:
+						t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = got unexpected error type (%v)", testName, err)
+					}
+				} else {
+					t.Fatalf("TestIMDBClientFindShowsByTitle(%v) = got unexpected error (%v)", testName, err)
+				}
+			}
 		}
 
 		if len(titles) != len(testCase.expected) {
