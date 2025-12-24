@@ -21,7 +21,6 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	done := make(chan struct{})
-	var titles []*models.ImdbapiTitle
 	var err *ce.IMDBClientApplicationError
 
 	url, parseerr := url.Parse("https://api.imdbapi.dev")
@@ -37,9 +36,11 @@ func main() {
 
 	imdbClient := client.New(options)
 	go func() {
+		var titles []*models.ImdbapiTitle
+
 		defer wg.Done()
 		fmt.Println("Finding results:")
-		titles, err = imdbClient.FindShowsByTitle("")
+		titles, err = imdbClient.FindShowsByTitle("Stranger Things")
 		if err != nil {
 			var appErr *ce.IMDBClientApplicationError
 			if errors.As(err, &appErr) && err.AppMessage == "Search title cannot be empty" {
@@ -51,6 +52,14 @@ func main() {
 		}
 		close(done)
 		fmt.Println("\nDone fetching results.")
+
+		if len(titles) == 0 {
+			log.Println("No titles found")
+		}
+
+		for _, title := range titles {
+			fmt.Printf("(%s)\t-> \"%s\"\n", title.ID, title.OriginalTitle)
+		}
 	}()
 	go func() {
 		progressMarker(done)
@@ -60,14 +69,6 @@ func main() {
 
 	if err != nil {
 		panic(err)
-	}
-
-	if len(titles) == 0 {
-		log.Println("No titles found")
-	}
-
-	for _, title := range titles {
-		fmt.Printf("(%s)\t-> \"%s\"\n", title.ID, title.OriginalTitle)
 	}
 
 }
