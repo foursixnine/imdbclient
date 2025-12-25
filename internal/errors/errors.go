@@ -33,7 +33,7 @@ func UnexpectedError(statusCode int, message string) *HTTPError {
 	return New(statusCode, message)
 }
 
-func (e HTTPError) Is(target error) bool {
+func (e *HTTPError) Is(target error) bool {
 	if t, ok := target.(*HTTPError); ok {
 		return e.Code == t.Code && e.Message == t.Message
 	}
@@ -45,11 +45,11 @@ type IMDBClientError struct {
 	Message string
 }
 
-func (e IMDBClientError) Error() string {
+func (e *IMDBClientError) Error() string {
 	return e.Message
 }
 
-func (e IMDBClientError) Unwrap() error {
+func (e *IMDBClientError) Unwrap() error {
 	return e.Err
 }
 
@@ -65,11 +65,11 @@ type IMDBClientApplicationError struct {
 	AppMessage  string
 }
 
-func (e IMDBClientApplicationError) Error() string {
+func (e *IMDBClientApplicationError) Error() string {
 	return fmt.Sprintf("IMDB Client Application Error: %s", e.AppMessage)
 }
 
-func (e IMDBClientApplicationError) Unwrap() error {
+func (e *IMDBClientApplicationError) Unwrap() error {
 	return e.ClientError
 }
 

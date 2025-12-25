@@ -39,13 +39,7 @@ func TestClient(t *testing.T) {
 		t.Error("Failed to parse url")
 	}
 
-	options := ImdbClientOptions{
-		ApiURL:    url,
-		Verbose:   true,
-		UserAgent: "imdblookup/0.1",
-	}
-
-	imdbClient := New(options)
+	imdbClient := New(url)
 	if imdbClient.options.ApiURL != url {
 		t.Error("Error creating instance of IMDBClient")
 	}
@@ -93,16 +87,11 @@ func TestIMDBClientGet(t *testing.T) {
 
 	url, err := url.Parse(server.URL)
 	if err != nil {
-		log.Println("Failed to parse url", err)
+		t.Error("Failed to parse url")
 	}
 
-	options := ImdbClientOptions{
-		ApiURL:    url,
-		Verbose:   true,
-		UserAgent: "imdblookup/0.1",
-	}
+	imdbClient := New(url)
 
-	imdbClient := New(options)
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
@@ -178,16 +167,10 @@ func TestIMDBClientMakeURL(t *testing.T) {
 
 	url, err := url.Parse(server.URL)
 	if err != nil {
-		t.Errorf("Failed to parse url (%v)", err)
+		t.Error("Failed to parse url")
 	}
 
-	options := ImdbClientOptions{
-		ApiURL:    url,
-		Verbose:   true,
-		UserAgent: "imdblookup/0.1",
-	}
-
-	imdbClient := New(options)
+	imdbClient := New(url)
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
@@ -222,20 +205,15 @@ func TestIMDBClientFindShowsByTitle(t *testing.T) {
 			params:   "Broken Json",
 		},
 	}
+
 	url, err := url.Parse(server.URL)
 	if err != nil {
-		log.Println("Failed to parse url", err)
+		t.Error("Failed to parse url")
 	}
 
-	options := ImdbClientOptions{
-		ApiURL:    url,
-		Verbose:   true,
-		UserAgent: "imdblookup/0.1",
-	}
-
-	imdbClient := New(options)
+	imdbClient := New(url)
 	for testName, testCase := range testCases {
-		titles, err := imdbClient.FindShowsByTitle(testCase.params)
+		titles, err := imdbClient.FindShowsByTitle(&testCase.params)
 		if err != nil {
 			if testCase.error != nil {
 				if e.As(err, &testCase.error) {
