@@ -29,7 +29,12 @@ type imdbClientTransport struct {
 	UserAgent string
 }
 
-func New(options ImdbClientOptions) *ImdbClient {
+func New(url *url.URL) *ImdbClient {
+	options := &ImdbClientOptions{
+		ApiURL:    url,
+		Verbose:   true,
+		UserAgent: "imdblookup/0.1",
+	}
 	transport := &imdbClientTransport{
 		UserAgent: options.UserAgent,
 	}
@@ -40,7 +45,7 @@ func New(options ImdbClientOptions) *ImdbClient {
 
 	return &ImdbClient{
 		HttpClient: httpClient,
-		options:    &options,
+		options:    options,
 	}
 }
 
@@ -62,18 +67,18 @@ func (client *ImdbClient) Get(path string, params *[]QueryParameters) ([]byte, e
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, errors.NewIMDBClientGenericError("error: creating http request %w", err)
+		return nil, errors.NewIMDBClientGenericError("error: creating http request", err)
 	}
 
 	resp, err := client.HttpClient.Do(req)
 	if err != nil {
-		return nil, errors.NewIMDBClientGenericError("error: executing http request %w", err)
+		return nil, errors.NewIMDBClientGenericError("error: executing http request", err)
 	}
 	defer resp.Body.Close()
 
 	response, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.NewIMDBClientGenericError("error: reading body of request %w", err)
+		return nil, errors.NewIMDBClientGenericError("error: reading body of request", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {

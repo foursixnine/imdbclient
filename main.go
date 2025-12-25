@@ -28,14 +28,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	options := client.ImdbClientOptions{
-		ApiURL:    url,
-		Verbose:   true,
-		UserAgent: "imdblookup/0.1",
-	}
-
-	imdbClient := client.New(options)
-	go getTitles(imdbClient, &wg, done)
+	log.Printf("Application started with %s as Server\n", args.api)
+	imdbClient := client.New(url)
+	go getTitles(imdbClient, opts.Query, &wg, done)
 	go progressMarker(done)
 
 	wg.Wait()
