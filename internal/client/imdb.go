@@ -7,8 +7,8 @@ import (
 	"github.com/foursixnine/imdblookup/models"
 )
 
-func (imdbClient *ImdbClient) FindShowsByTitle(searchTitle string) ([]*models.ImdbapiTitle, *ce.IMDBClientApplicationError) {
-	if searchTitle == "" {
+func (imdbClient *ImdbClient) FindShowsByTitle(searchTitle *string) ([]*models.ImdbapiTitle, *ce.IMDBClientApplicationError) {
+	if *searchTitle == "" {
 		err := ce.NewIMDBClientApplicationError("Search title cannot be empty", nil)
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func (imdbClient *ImdbClient) FindShowsByTitle(searchTitle string) ([]*models.Im
 
 	path := "search/titles"
 	parameters := []QueryParameters{
-		{Key: "query", Value: searchTitle},
+		{Key: "query", Value: *searchTitle},
 		{Key: "limit", Value: "5"},
 	}
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -14,15 +14,30 @@ import (
 	"github.com/foursixnine/imdblookup/models"
 )
 
+type CLIargs struct {
+	api string
+}
+
+type CLIopts struct {
+	Query string
+	Limit int
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmsgprefix)
-	log.Println("Application started")
+
+	var args CLIargs
+	var opts CLIopts
+
+	flag.StringVar(&opts.Query, "query", "Stranger Things", "Search query for IMDB titles")
+	flag.StringVar(&args.api, "api", "https://api.imdbapi.dev", "Api url to use as base")
+	flag.Parse()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	done := make(chan struct{})
 
-	url, err := url.Parse("https://api.imdbapi.dev")
+	url, err := url.Parse(args.api)
 	if err != nil {
 		log.Printf("Error parsing api url: %v", err)
 		os.Exit(1)
@@ -35,27 +50,22 @@ func main() {
 
 	wg.Wait()
 
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 }
 
-func getTitles(imdbClient *client.ImdbClient, wg *sync.WaitGroup, done chan struct{}) {
+func getTitles(imdbClient *client.ImdbClient, query string, wg *sync.WaitGroup, done chan struct{}) {
 	var titles []*models.ImdbapiTitle
 	var err *ce.IMDBClientApplicationError
 
 	defer wg.Done()
 	fmt.Println("Finding results:")
-	titles, err = imdbClient.FindShowsByTitle("Stranger Things")
+	titles, err = imdbClient.FindShowsByTitle(&query)
 	if err != nil {
-		var appErr *ce.IMDBClientApplicationError
-		if errors.As(err, &appErr) && err.AppMessage == "Search title cannot be empty" {
+		if err.AppMessage == "Search title cannot be empty" {
 			log.Printf("Title cannot be empty %v\n", err)
-			os.Exit(404)
+			os.Exit(3)
 		}
 		log.Printf("An error has occurred: (%v)\n", err)
-		os.Exit(2)
+		os.Exit(1)
 	}
 	close(done)
 	fmt.Println("\nDone fetching results.")
