@@ -6,12 +6,12 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/foursixnine/imdblookup/internal/client"
 	ce "github.com/foursixnine/imdblookup/internal/errors"
-	"github.com/foursixnine/imdblookup/models"
 )
 
 type CLIargs struct {
@@ -33,40 +33,55 @@ func main() {
 	flag.StringVar(&args.api, "api", "https://api.imdbapi.dev", "Api url to use as base")
 	flag.Parse()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	done := make(chan struct{})
+	if args.api == "" {
+		log.Fatalf("api url cannot be empty")
+	} else if !strings.HasPrefix(args.api, "http") {
+		log.Fatalf("api url does not have scheme: '%s'", args.api)
+	}
 
 	url, err := url.Parse(args.api)
 	if err != nil {
-		log.Printf("Error parsing api url: %v", err)
-		os.Exit(1)
+		log.Fatalf("Error parsing api url: %v", err)
 	}
 
-	log.Printf("Application started with %s as Server\n", args.api)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	done := make(chan struct{})
+	result := &ce.IMDBClientApplicationError{}
+
 	imdbClient := client.New(url)
-	go getTitles(imdbClient, opts.Query, &wg, done)
+	log.Printf("Application started with %s as Server\n", args.api)
+
+	go getTitles(imdbClient, opts.Query, &wg, done, result)
 	go progressMarker(done)
 
 	wg.Wait()
 
+	if result.Code != 0 {
+		log.Printf("Error not empty, %v\n", result)
+		ce.RootCause(result)
+		os.Exit(result.Code)
+	}
 }
 
-func getTitles(imdbClient *client.ImdbClient, query string, wg *sync.WaitGroup, done chan struct{}) {
-	var titles []*models.ImdbapiTitle
-	var err *ce.IMDBClientApplicationError
-
+func getTitles(imdbClient *client.ImdbClient, query string, wg *sync.WaitGroup, done chan struct{}, result *ce.IMDBClientApplicationError) {
 	defer wg.Done()
 	fmt.Println("Finding results:")
-	titles, err = imdbClient.FindShowsByTitle(&query)
+	titles, err := imdbClient.FindShowsByTitle(&query)
+
 	if err != nil {
 		if err.AppMessage == "Search title cannot be empty" {
 			log.Printf("Title cannot be empty %v\n", err)
-			os.Exit(3)
+			*result = *err
+			result.Code = 3
+			return
 		}
-		log.Printf("An error has occurred: (%v)\n", err)
-		os.Exit(1)
+		log.Printf("An unexpected error has occurred: (%v)\n", err)
+		*result = *err
+		result.Code = 2
+		return
 	}
+
 	close(done)
 	fmt.Println("\nDone fetching results.")
 

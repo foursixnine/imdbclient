@@ -1,7 +1,9 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -63,6 +65,7 @@ func NewIMDBClientGenericError(message string, err error) *IMDBClientError {
 type IMDBClientApplicationError struct {
 	ClientError error
 	AppMessage  string
+	Code        int
 }
 
 func (e *IMDBClientApplicationError) Error() string {
@@ -77,5 +80,11 @@ func NewIMDBClientApplicationError(appMessage string, clientError error) *IMDBCl
 	return &IMDBClientApplicationError{
 		ClientError: clientError,
 		AppMessage:  appMessage,
+	}
+}
+
+func RootCause(result error) {
+	for err := error(result); err != nil; err = errors.Unwrap(err) {
+		log.Printf("Unwrapped error: %v", err)
 	}
 }

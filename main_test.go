@@ -21,9 +21,14 @@ func TestMain(t *testing.T) {
 			expected: `\(foobar\).*"Stranger Things"`,
 			params:   "Stranger Things",
 		},
+		"with broken api": {
+			expected: `api url does not have scheme: 'localhost:22/'`,
+			params:   "Stranger Things",
+		},
 	}
 	server := tests.SetupServer(t)
 	defer server.Close()
+	apiurl := server.URL
 
 	cmd := exec.Command("go", "build", "-o", "test_binary", ".")
 	err := cmd.Run()
@@ -33,16 +38,23 @@ func TestMain(t *testing.T) {
 	defer exec.Command("rm", "test_binary").Run()
 
 	for testName, testCase := range testCases {
-		cmd = exec.Command("./test_binary", "--query", testCase.params, "--api", server.URL)
+
+		if testName == "with broken api" {
+			apiurl = "localhost:22/"
+		}
+
+		cmd = exec.Command("./test_binary", "--query", testCase.params, "--api", apiurl)
 		output, err := cmd.CombinedOutput()
 		exitCode := cmd.ProcessState.ExitCode()
 
 		if err != nil {
 			switch exitCode {
 			case 3:
-				t.Logf("Properly failed when expected: %s", testName)
+				t.Logf("Properly failed when expected: %s, %d", testName, exitCode)
+			case 1:
+				t.Logf("Properly failed when expected: %s, %d", testName, exitCode)
 			default:
-				t.Errorf("Unexpected exit code, expected 0, %s got %d. Output: %s, error: %v", testName, exitCode, string(output), err)
+				t.Fatalf("Unexpected exit code, expected 0, '%s' got %d. Output:\n%serror:\n%v\n", testName, exitCode, string(output), err)
 			}
 		}
 
