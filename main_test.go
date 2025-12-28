@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	ce "github.com/foursixnine/imdblookup/internal/errors"
 	"github.com/foursixnine/imdblookup/tests"
 )
 
@@ -12,18 +13,22 @@ func TestMain(t *testing.T) {
 	testCases := map[string]struct {
 		params   string
 		expected string
+		exitcode int
 	}{
 		"with empty query": {
 			expected: ".*Search title cannot be empty.*",
 			params:   "",
+			exitcode: ce.EMPTYQUERYERROR,
 		},
 		"with Stranger Things": {
 			expected: `\(foobar\).*"Stranger Things"`,
 			params:   "Stranger Things",
+			// exitcode: ce.SUCCESS, Success should not pupulate err
 		},
 		"with broken api": {
 			expected: `api url does not have scheme: 'localhost:22/'`,
 			params:   "Stranger Things",
+			exitcode: ce.GENERICERROR,
 		},
 	}
 	server := tests.SetupServer(t)
@@ -48,13 +53,8 @@ func TestMain(t *testing.T) {
 		exitCode := cmd.ProcessState.ExitCode()
 
 		if err != nil {
-			switch exitCode {
-			case 3:
-				t.Logf("Properly failed when expected: %s, %d", testName, exitCode)
-			case 1:
-				t.Logf("Properly failed when expected: %s, %d", testName, exitCode)
-			default:
-				t.Fatalf("Unexpected exit code, expected 0, '%s' got %d. Output:\n%serror:\n%v\n", testName, exitCode, string(output), err)
+			if exitCode != testCase.exitcode {
+				t.Fatalf("Unexpected exit code, expected 0, '%s' got %d, expected %d. Output:\n%serror:\n%v\n", testName, exitCode, testCase.exitcode, string(output), err)
 			}
 		}
 
@@ -65,5 +65,4 @@ func TestMain(t *testing.T) {
 			t.Logf("%s passed", testName)
 		}
 	}
-
 }

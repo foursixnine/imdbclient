@@ -7,6 +7,14 @@ import (
 	"net/http"
 )
 
+const (
+	SUCCESS = iota
+	GENERICERROR
+	CONNECTIONREFUSEDERROR
+	HOSTNOTFOUNDERROR
+	EMPTYQUERYERROR
+)
+
 type HTTPError struct {
 	Code    int
 	Message string

@@ -19,12 +19,12 @@ func getTitles(imdbClient *client.ImdbClient, query string, wg *sync.WaitGroup, 
 		if err.AppMessage == "Search title cannot be empty" {
 			log.Printf("Title cannot be empty %v\n", err)
 			*result = *err
-			result.Code = 3
+			result.Code = ce.EMPTYQUERYERROR
 			return
 		}
 		log.Printf("An unexpected error has occurred: (%v)\n", err)
 		*result = *err
-		result.Code = 2
+		result.Code = ce.GENERICERROR
 		return
 	}
 

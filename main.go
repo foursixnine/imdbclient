@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/foursixnine/imdblookup/internal/client"
 	ce "github.com/foursixnine/imdblookup/internal/errors"
@@ -56,8 +58,20 @@ func main() {
 	wg.Wait()
 
 	if result.Code != 0 {
-		log.Printf("Error not empty, %v\n", result)
-		ce.RootCause(result)
+		if errors.Is(result, syscall.ECONNREFUSED) {
+			log.Println("Connection to api server has been refused")
+			result.Code = ce.CONNECTIONREFUSEDERROR
+		} else {
+			var appErr *ce.IMDBClientApplicationError
+			// if errors.As(result, ce.NewIMDBClientApplicationError("Search title cannot be empty", nil)) {
+			if errors.As(result, &appErr) && appErr.AppMessage == "Search title cannot be empty" {
+				log.Println("Search query cannot be empty")
+			} else {
+				log.Printf("Unhandled error, %v\n", result)
+				ce.RootCause(result)
+			}
+		}
 		os.Exit(result.Code)
 	}
+
 }
